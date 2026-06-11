@@ -93,6 +93,7 @@ svg{width:100%;height:100%}
 .tw-label{pointer-events:none;user-select:none}
 /* Topic sidebar */
 #topic-sidebar{position:fixed;right:0;top:0;height:100%;width:360px;background:rgba(10,10,24,0.97);border-left:1px solid rgba(255,255,255,0.08);transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);overflow-y:auto;z-index:50;padding:36px 28px 40px}
+@media(max-width:600px){#topic-sidebar{width:100%;border-left:none;border-top:1px solid rgba(255,255,255,0.08)}}
 #topic-sidebar.open{transform:translateX(0)}
 #topic-sidebar::-webkit-scrollbar{width:3px}
 #topic-sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:2px}
@@ -1634,7 +1635,8 @@ Object.entries(PHILOSOPHER_TOPICS).forEach(([philId,tags])=>{
 });
 
 let twBuilt=false, twSelectedId=null, twLinkSel=null, twNodeSel=null;
-let twPinnedId=null, twPinnedType=null; // tracks the currently selected node for pin-open logic
+let twPinnedId=null, twPinnedType=null;
+let twMobile=false;
 const twSvg=d3.select("#topic-graph");
 const twG=twSvg.append("g");
 const twZoom=d3.zoom().scaleExtent([0.2,4]).on("zoom",e=>twG.attr("transform",e.transform));
@@ -1645,9 +1647,10 @@ let twCx=0, twCy=0, twTopicR=0;
 function buildTopicWeb(){
   if(twBuilt) return; twBuilt=true;
   const TW=window.innerWidth, TH=window.innerHeight;
+  twMobile=TW<600;
   twSvg.attr("width",TW).attr("height",TH);
   const cx=TW/2, cy=TH/2;
-  const topicR=Math.min(TW,TH)*0.30;
+  const topicR=Math.min(TW,TH)*(twMobile?0.38:0.30);
   const subDist=topicR*0.52;
   const debDist=subDist*0.55;
   twCx=cx; twCy=cy; twTopicR=topicR;
@@ -1772,6 +1775,8 @@ function buildTopicWeb(){
     });
 
   twNodeSel=twNode;
+  // On mobile hide subs/debates until a topic is tapped
+  if(twMobile) twNode.filter(n=>n.type==="sub"||n.type==="debate").attr("opacity",0);
   twSvg.on("click",(e)=>{ if(!e.target.closest(".tw-node")) closeTwSidebar(); });
 }
 
@@ -1803,8 +1808,11 @@ function expandTopicCluster(topicNode){
 
 function collapseTopicCluster(){
   if(!twNodeSel||!twLinkSel) return;
-  // Restore all nodes (named transitions run concurrently)
-  twNodeSel.transition("fade").duration(400).attr("opacity",1);
+  // Restore all nodes (named transitions run concurrently); on mobile keep subs/debates hidden
+  twNodeSel.transition("fade").duration(400).attr("opacity",n=>{
+    if(twMobile&&(n.type==="sub"||n.type==="debate")) return 0;
+    return 1;
+  });
   // Restore original positions
   twNodeSel.filter(n=>n.type==="sub"||n.type==="debate")
     .each(n=>{ n.x=n.ox; n.y=n.oy; })
@@ -1827,9 +1835,9 @@ function resetTwPath(){
 
 function zoomToTwNode(cx, cy, scale){
   const TW=window.innerWidth, TH=window.innerHeight;
-  const sidebarW=360;
-  // Center the cluster in the visible canvas (left of sidebar)
-  const tx=(TW-sidebarW)/2 - scale*cx;
+  // On mobile the sidebar overlays full-width, so centre on full viewport
+  const visW=twMobile?TW:TW-360;
+  const tx=visW/2 - scale*cx;
   const ty=TH/2 - scale*cy;
   twSvg.transition().duration(600).ease(d3.easeCubicInOut)
     .call(twZoom.transform, d3.zoomIdentity.translate(tx,ty).scale(scale));
