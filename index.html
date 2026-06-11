@@ -93,8 +93,11 @@ svg{width:100%;height:100%}
 .tw-label{pointer-events:none;user-select:none}
 /* Topic sidebar */
 #topic-sidebar{position:fixed;right:0;top:0;height:100%;width:360px;background:rgba(10,10,24,0.97);border-left:1px solid rgba(255,255,255,0.08);transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);overflow-y:auto;z-index:50;padding:36px 28px 40px}
-@media(max-width:600px){#topic-sidebar{width:100%;border-left:none;border-top:1px solid rgba(255,255,255,0.08)}}
 #topic-sidebar.open{transform:translateX(0)}
+@media(max-width:600px){
+  #topic-sidebar{width:100%;height:42vh;top:auto;bottom:0;right:0;border-left:none;border-top:1px solid rgba(255,255,255,0.15);border-radius:14px 14px 0 0;transform:translateY(100%);padding:20px 18px 28px}
+  #topic-sidebar.open{transform:translateY(0)}
+}
 #topic-sidebar::-webkit-scrollbar{width:3px}
 #topic-sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:2px}
 #topic-sidebar-close{position:absolute;top:14px;right:14px;background:none;border:none;color:rgba(180,180,200,0.5);cursor:pointer;font-size:22px;line-height:1;padding:4px 8px;border-radius:4px;transition:color 0.15s;font-family:sans-serif}
@@ -1650,9 +1653,9 @@ function buildTopicWeb(){
   twMobile=TW<600;
   twSvg.attr("width",TW).attr("height",TH);
   const cx=TW/2, cy=TH/2;
-  const topicR=Math.min(TW,TH)*(twMobile?0.38:0.30);
-  const subDist=topicR*0.52;
-  const debDist=subDist*0.55;
+  const topicR=Math.min(TW,TH)*0.30;
+  const subDist=topicR*(twMobile?0.46:0.52);
+  const debDist=subDist*(twMobile?0.48:0.55);
   twCx=cx; twCy=cy; twTopicR=topicR;
 
   const nodes=[], links=[];
@@ -1750,18 +1753,19 @@ function buildTopicWeb(){
       }
     });
 
+  const rTopic=twMobile?15:22, rSub=twMobile?8:13, rDeb=twMobile?5:8;
   twNode.append("circle")
-    .attr("r",d=>d.type==="topic"?22:d.type==="sub"?13:8)
+    .attr("r",d=>d.type==="topic"?rTopic:d.type==="sub"?rSub:rDeb)
     .attr("fill",d=>d.color+(d.type==="topic"?"bb":d.type==="sub"?"66":"55"))
     .attr("stroke",d=>d.color)
     .attr("stroke-width",d=>d.type==="topic"?1.8:d.type==="sub"?1:0.8)
     .attr("stroke-opacity",d=>d.type==="topic"?0.7:0.5);
 
-  // Labels: always visible for topic/sub nodes; hidden at rest for debate nodes (revealed on hover)
+  // Labels: always visible for topic/sub nodes; hidden at rest for debate nodes
   twNode.append("text").attr("class","tw-label")
     .attr("text-anchor","middle")
-    .attr("dy",d=>d.type==="topic"?-(22+8):d.type==="sub"?-(13+7):-(8+7))
-    .attr("font-size",d=>d.type==="topic"?"12px":d.type==="sub"?"10px":"10px")
+    .attr("dy",d=>d.type==="topic"?-(rTopic+6):d.type==="sub"?-(rSub+5):-(rDeb+5))
+    .attr("font-size",d=>d.type==="topic"?(twMobile?"10px":"12px"):(twMobile?"8px":"10px"))
     .attr("font-family","Georgia,serif")
     .attr("fill",d=>d.type==="topic"?d.color:d.type==="sub"?"rgba(200,200,220,0.80)":"rgba(220,220,240,0.90)")
     .attr("paint-order","stroke")
@@ -1775,8 +1779,6 @@ function buildTopicWeb(){
     });
 
   twNodeSel=twNode;
-  // On mobile hide subs/debates until a topic is tapped
-  if(twMobile) twNode.filter(n=>n.type==="sub"||n.type==="debate").attr("opacity",0);
   twSvg.on("click",(e)=>{ if(!e.target.closest(".tw-node")) closeTwSidebar(); });
 }
 
@@ -1808,11 +1810,8 @@ function expandTopicCluster(topicNode){
 
 function collapseTopicCluster(){
   if(!twNodeSel||!twLinkSel) return;
-  // Restore all nodes (named transitions run concurrently); on mobile keep subs/debates hidden
-  twNodeSel.transition("fade").duration(400).attr("opacity",n=>{
-    if(twMobile&&(n.type==="sub"||n.type==="debate")) return 0;
-    return 1;
-  });
+  // Restore all nodes (named transitions run concurrently)
+  twNodeSel.transition("fade").duration(400).attr("opacity",1);
   // Restore original positions
   twNodeSel.filter(n=>n.type==="sub"||n.type==="debate")
     .each(n=>{ n.x=n.ox; n.y=n.oy; })
