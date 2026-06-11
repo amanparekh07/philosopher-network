@@ -1692,8 +1692,8 @@ function buildTopicWeb(){
   // Draw all links (center-topic rendered first so they appear behind nodes)
   twLinkSel=twG.append("g").selectAll("line").data(linkObjs).enter().append("line")
     .attr("class",l=>l.type==="center-topic"?"tw-link-center":"tw-link"+(l.type==="sub-debate"?" sub":""))
-    .style("stroke",l=>l.type==="center-topic"?l.color:null)
-    .style("stroke-opacity",l=>l.type==="center-topic"?1:null)
+    .style("stroke",l=>l.type==="center-topic"?l.color:l.source.color)
+    .style("stroke-opacity",l=>l.type==="center-topic"?1:l.type==="topic-sub"?0.6:0.4)
     .style("stroke-width",l=>l.type==="center-topic"?"2px":null)
     .attr("x1",l=>l.source.x).attr("y1",l=>l.source.y)
     .attr("x2",l=>l.target.x).attr("y2",l=>l.target.y);
@@ -1813,51 +1813,13 @@ function collapseTopicCluster(){
     .attr("x2",l=>l.target.x).attr("y2",l=>l.target.y);
 }
 
-function highlightTwPath(d){
-  if(!twLinkSel) return;
-  // Build the set of (sourceId, targetId) pairs on the path to d
-  const pathLinks=new Set();
-  const tid=d.topicId||d.id; // the ancestor topic id
-  // center → topic always in path
-  pathLinks.add("center|"+tid);
-  if(d.type==="sub"||d.type==="debate"){
-    pathLinks.add(tid+"|"+d.id+(d.type==="sub"?"":"|sub")); // topic → sub
-    // find sub id
-    const subId=d.type==="sub"?d.id:d.subId;
-    pathLinks.add(tid+"|"+subId);
-    if(d.type==="debate") pathLinks.add(subId+"|"+d.id);
-  }
-  twLinkSel
-    .style("stroke-width",l=>{
-      let s,t;
-      if(l.type==="center-topic"){s="center";t=l.target.id;}
-      else{s=l.source.id;t=l.target.id;}
-      if(pathLinks.has(s+"|"+t)) return l.type==="center-topic"?"2.5px":"2.5px";
-      return null;
-    })
-    .style("stroke-opacity",l=>{
-      let s,t;
-      if(l.type==="center-topic"){s="center";t=l.target.id;}
-      else{s=l.source.id;t=l.target.id;}
-      if(pathLinks.has(s+"|"+t)) return "1";
-      if(l.type==="center-topic") return "0.12";
-      return "0.04";
-    })
-    .style("stroke",l=>{
-      let s,t;
-      if(l.type==="center-topic"){s="center";t=l.target.id;}
-      else{s=l.source.id;t=l.target.id;}
-      if(l.type==="center-topic") return pathLinks.has(s+"|"+t)?l.color:l.color;
-      return pathLinks.has(s+"|"+t)?"rgba(255,255,255,0.95)":null;
-    });
-}
 
 function resetTwPath(){
   if(!twLinkSel) return;
   twLinkSel
     .style("stroke-width",l=>l.type==="center-topic"?"2px":null)
-    .style("stroke-opacity",l=>l.type==="center-topic"?"1":null)
-    .style("stroke",l=>l.type==="center-topic"?l.color:null);
+    .style("stroke-opacity",l=>l.type==="center-topic"?1:l.type==="topic-sub"?0.6:0.4)
+    .style("stroke",l=>l.type==="center-topic"?l.color:l.source.color);
 }
 
 function zoomToTwNode(cx, cy, scale){
