@@ -1120,7 +1120,10 @@ function fillSidebar(d,incIds,outIds){
   document.getElementById("philosopher-school").textContent=SCHOOLS[d.school]?.label||d.school;
   const topics=PHILOSOPHER_TOPICS[d.id]||[];
   document.getElementById("topics-list").innerHTML=topics.length
-    ? topics.map(t=>`<span class="topic-tag" onclick="showTopicWeb('${t}')">${t}</span>`).join("")
+    ? topics.map(t=>{
+        const c=TOPIC_TREE.find(x=>x.label===t)?.color||"#888";
+        return `<span class="topic-tag" style="background:${c}22;color:${c};border:1px solid ${c}44" onclick="showTopicWeb('${t}')">${t}</span>`;
+      }).join("")
     : '<span class="none-text">No topics tagged</span>';
   document.getElementById("works-list").innerHTML=d.works.map(w=>`<li>${w}</li>`).join("");
   document.getElementById("ideas-list").innerHTML=d.ideas.map(i=>`<li><strong>${i.t}</strong>${i.d}</li>`).join("");
